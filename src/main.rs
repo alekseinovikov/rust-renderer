@@ -4,6 +4,7 @@ use std::process;
 
 mod obj_loader;
 mod renderer;
+mod ui;
 mod window;
 
 fn main() {

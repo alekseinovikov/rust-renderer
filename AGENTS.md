@@ -5,6 +5,7 @@
 - `src/obj_loader/`: OBJ parsing; add renderer/camera/math/image modules as they appear.
 - `src/window.rs`: winit setup + event loop driving renderer.
 - `src/renderer.rs`: wgpu surface/device/queue config and frame rendering.
+- `src/ui.rs`: lightweight UI overlay (e.g., FPS counter).
 - Assets live in `assets/`; outputs go to `target/`.
 
 ## Commands (run after each change)
@@ -30,7 +31,8 @@
 ## Implementation Snapshot
 - OBJ loader API (`src/obj_loader/mod.rs`): `load_obj(path) -> Result<ObjModel>`, with `ObjModel` holding `positions`, `texcoords`, `normals`, `faces`; `Face` uses `VertexIndex { position, texcoord, normal }`.
 - Supports negative indices; faces with <3 refs are skipped.
-- Renderer (`src/renderer.rs`): initializes wgpu instance/adapter/device/queue, configures surface with sRGB format and vsync-friendly present mode, builds depth buffer, and renders triangles with a simple WGSL shader using an MVP uniform. `upload_model` triangulates OBJ faces, computes normals (falling back to face normals), scales/translates to fit view, and pushes vertices into a GPU buffer. Orbit camera tracks yaw/pitch/distance; uniform is updated via `orbit_camera` (drag) and `zoom_camera` (wheel). Simple CPU bitmap UI draws an FPS counter in the top-left corner each frame. Includes a shader compilation/pipeline test to catch WGSL regressions.
+- Renderer (`src/renderer.rs`): initializes wgpu instance/adapter/device/queue, configures surface with sRGB format and vsync-friendly present mode, builds depth buffer, and renders triangles with a simple WGSL shader using an MVP uniform. `upload_model` triangulates OBJ faces, computes normals (falling back to face normals), scales/translates to fit view, and pushes vertices into a GPU buffer. Orbit camera tracks yaw/pitch/distance; uniform is updated via `orbit_camera` (drag/keys) and `zoom_camera` (wheel/keys). Delegates UI overlay drawing to `ui::UiOverlay`.
+- UI (`src/ui.rs`): builds a tiny bitmap-font overlay pipeline and vertex buffer to draw an FPS counter in the top-left corner; shares depth format with main pass for compatibility.
 - Event loop (`src/window.rs`): creates window, drives resize/close/redraw events, and requests redraws when idle; handles surface loss/outdated events by resizing. Mouse: left-drag orbits the camera (both axes inverted from initial), scroll wheel zooms; FPS is measured per second and pushed to renderer overlay. Keyboard: WASD rotates/zooms (A/D yaw, W forward zoom, S backward zoom).
 - Entry (`src/main.rs`): spins up window + renderer, loads `assets/benz.obj` by default (CLI arg overrides), uploads it to renderer, then starts the event loop; leaks window to satisfy `'static` surface lifetime for long-lived event loop.
 - Tests: unit tests in `obj_loader` including `assets/benz.obj` fixture (positions=332,922; texcoords=233,002; normals=195,844; faces=192,985 with one degenerate skipped) and a negative-index case.
